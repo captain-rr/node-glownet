@@ -1,0 +1,26 @@
+{
+  "name": "node-glownet",
+  "version": "1.0.0",
+  "description": "Node service for http://api.glownet.com",
+  "main": "glownet.js",
+  "dependencies": {
+    "request": "2.81.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/captain-rr/node-glownet.git"
+  },
+  "keywords": [
+    "glownet"
+  ],
+  "author": "Dror Cohen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/captain-rr/node-glownet/issues"
+  },
+  "homepage": "https://github.com/captain-rr/node-glownet#readme"
+}
