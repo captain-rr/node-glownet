@@ -163,9 +163,55 @@
                     });
             });
 
+        },
+        addTicketToBlacklist: function(ticketReference) {
+            let self = this;
+            return new Promise(function (resolve, reject) {
+                self.request.post(`${self.host}/companies/api/v1/tickets/blacklist`, {
+                    body: {
+                        tickets_blacklist: {
+                            ticket_reference: ticketReference
+                        }
+                    }
+                }, function (err, response, responseBody) {
+                    if (err) {
+                        console.error('Glownet.getTicketType', err);
+                        reject(err);
+                    } else {
+                        resolve(responseBody);
+                    }
+                });
+            });
+        },
+        multipleTicketsToBlackList: function(tickets){
+            let self = this;
+            return new Promise(function (resolve, reject) {
+                function doOne(){
+                    if (!tickets.length)
+                        resolve();
+                    else {
+                        // TODO: add throttling? documentation has no info on accepted rates
+                        self.addTicketToBlacklist(tickets.pop()).then(doOne, reject);
+                    }
+                }
+                doOne();
+            });
+        },
+        removeTicketFromBlackList: function(ticketReference){
+            let self = this;
+            return new Promise(function (resolve, reject) {
+                self.request.delete(`${self.host}/companies/api/v1/tickets/blacklist/${ticketReference}`,
+                    function (err, response, responseBody) {
+                    if (err) {
+                        console.error('Glownet.getTicketType', err);
+                        reject(err);
+                    } else {
+                        resolve(responseBody);
+                    }
+                });
+            });
         }
     };
-
 
     module.exports = Glownet;
 })();
