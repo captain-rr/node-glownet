@@ -1,12 +1,23 @@
 (function(){
     'use strict';
 
-    var request = require('request');
-    var SANDBOX_HOST = 'https://sandbox.glownet.com';
+    let request = require('request');
+    let _ = require('underscore');
+    const SANDBOX_HOST = 'https://sandbox.glownet.com';
+    const TICKET_TYPE_REF = 'ticket_type_ref';
 
-    function Glownet(eventToken, companyToken, ticketTypeIdProperty, host){
+    function mapObject(object, map){
+        let retVal = {};
+        Object.keys(map).forEach(function(key){
+            retVal[key] = object[map[key]];
+        });
+        return retVal;
+    }
+
+    function Glownet(eventToken, companyToken, ticketTypeRefProperty, ticketTypeIdProperty, host){
         this.host = host || SANDBOX_HOST;
         this.ticketTypeIdProperty = ticketTypeIdProperty || 'glownetId';
+        this.ticketTypeRefProperty = ticketTypeRefProperty || TICKET_TYPE_REF;
         this.request = request.defaults({
             json: true,
             auth: {
@@ -97,7 +108,7 @@
                     .then(function(old){
                         let newMap = {};
                         newTicketTypes.forEach(function(newTicketType){
-                            newMap[newTicketType.ticket_type_ref] = newTicketType;
+                            newMap[newTicketType[self.ticketTypeRefProperty]] = newTicketType;
                         });
                         let promises = [];
                         old.ticket_types.forEach(function(oldTicketType){
@@ -106,19 +117,52 @@
                                 //promises.push(remove(oldTicketType))
                             } else {
                                 if (newMap[oldTicketType.ticket_type_ref].name !== oldTicketType.name)
-                                    promises.push(self.updateTicketType(oldTicketType.id, newMap[oldTicketType.ticket_type_ref]))
+                                    promises.push(self.updateTicketType(oldTicketType.id, {
+                                        name: newMap[oldTicketType.ticket_type_ref].name,
+                                        ticket_type_ref: oldTicketType.ticket_type_ref
+                                    }));
 
                                 delete newMap[oldTicketType.ticket_type_ref];
                             }
                         });
-                        Object.keys(newMap).map(function(newTicketType){
-                            promises.push(self.addTicketType(newMap[newTicketType]));
-                        });
+                        promises.push.apply(promises, _.values(newMap).map(function(ticketType){
+                            return self.addTicketType(mapObject(ticketType, {name: 'name', ticket_type_ref: self.ticketTypeRefProperty}));
+                        }));
                         Promise.all(promises).then(function(){
                             resolve(Object.keys(newMap).length);
                         }, reject);
                     });
             });
+        },
+        bulkUploadTickets: function(tickets){
+            let self = this;
+            return new Promise(function(resolve, reject) {
+                let invalid = [];
+                let body = [];
+                tickets.forEach(function(ticket, index){
+                    'ticket_reference ticket_type_id'.split(' ').forEach(function (field) {
+                        if (!ticket[field])
+                            invalid.push(`Ticket.${index}.${field}`);
+                    });
+                    body.push(_.pick(ticket, 'ticket_reference', 'ticket_type_id', 'purchaser_attributes'));
+                });
+                if (invalid.length)
+                    process.nextTick(reject, 'Missing field(s): ' + invalid.join(','));
+                else
+                    self.request.post(`${self.host}/companies/api/v1/tickets/bulk_upload`, {
+                        body: {
+                            tickets: body
+                        }
+                    }, function (err, response, responseBody) {
+                        if (err) {
+                            console.error('Glownet.getTicketType', err);
+                            reject(err);
+                        } else {
+                            resolve(responseBody);
+                        }
+                    });
+            });
+
         }
     };
 

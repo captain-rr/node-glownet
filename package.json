@@ -1,6 +1,6 @@
 {
   "name": "node-glownet",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Node service for http://api.glownet.com",
   "main": "glownet.js",
   "dependencies": {
