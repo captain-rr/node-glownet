@@ -4,8 +4,9 @@
     var request = require('request');
     var SANDBOX_HOST = 'https://sandbox.glownet.com';
 
-    function Glownet(eventToken, companyToken, host){
+    function Glownet(eventToken, companyToken, ticketTypeIdProperty, host){
         this.host = host || SANDBOX_HOST;
+        this.ticketTypeIdProperty = ticketTypeIdProperty || 'glownetId';
         this.request = request.defaults({
             json: true,
             auth: {
@@ -50,12 +51,13 @@
                         body: {
                             ticket_type: body
                         }
-                    }, function (err, response, body) {
+                    }, function (err, response, responseBody) {
                         if (err) {
                             console.error('Glownet.getTicketType', err);
                             reject(err);
                         } else {
-                            resolve(body);
+                            ticketType[self.ticketTypeIdProperty] = responseBody.id;
+                            resolve(responseBody);
                         }
                     });
             });
@@ -112,7 +114,9 @@
                         Object.keys(newMap).map(function(newTicketType){
                             promises.push(self.addTicketType(newMap[newTicketType]));
                         });
-                        Promise.all(promises).then(resolve, reject);
+                        Promise.all(promises).then(function(){
+                            resolve(Object.keys(newMap).length);
+                        }, reject);
                     });
             });
         }
